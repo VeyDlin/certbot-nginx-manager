@@ -1,10 +1,14 @@
 import sys
 import argparse
+import logging
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 from config import Config
 from certbot_manager import CertbotManager
 from nginx_manager import NginxManager
+
+
+logger = logging.getLogger(__name__)
 
 
 def get_full_domain(config: Config, subdomain: str | None, is_main: bool):
@@ -15,61 +19,61 @@ def get_full_domain(config: Config, subdomain: str | None, is_main: bool):
 
 def run_update_mode(config: Config, subdomain: str | None, is_main: bool):
     domain = get_full_domain(config, subdomain, is_main)
-    print(f"[INFO] Updating certificate for {domain}")
+    logger.info("Updating certificate for %s", domain)
     nginx = NginxManager(domain, None, config.paths.nginx, config.paths.template, config.paths.acme_template)
 
     if not nginx.extract_port_from_config():
-        print(f"[ERROR] Failed to extract port from config")
+        logger.error("Failed to extract port from config")
         return
     
     if not nginx.create_backup():
-        print(f"[ERROR] Config file for {domain} does not exist. Cannot create backup.")
+        logger.error("Config file for %s does not exist. Cannot create backup.", domain)
         return
     
     if not nginx.create_acme_challenge_config():
-        print(f"[ERROR] Failed to create ACME challenge config for {domain}")
+        logger.error("Failed to create ACME challenge config for %s", domain)
         nginx.restore_backup()
         return
     
     if not NginxManager.test_config():
-        print(f"[ERROR] nginx config test failed after writing ACME config")
+        logger.error("nginx config test failed after writing ACME config")
         nginx.restore_backup()
         return
 
     if not NginxManager.reload():
-        print(f"[ERROR] Failed to reload nginx after writing ACME config")
+        logger.error("Failed to reload nginx after writing ACME config")
         nginx.restore_backup()
         return
     
     if not CertbotManager.request_basic_certificate(domain, config.email):
-        print(f"[ERROR] Failed to obtain certificate from certbot for {domain}")
+        logger.error("Failed to obtain certificate from certbot for %s", domain)
 
     nginx.restore_backup()
     
     if not NginxManager.reload():
-        print(f"[WARNING] nginx reloaded with restored config but may require manual attention")
+        logger.warning("nginx reloaded with restored config but may require manual attention")
 
     
 def run_create_mode(config: Config, subdomain: str | None, is_main: bool, port: str):
     domain = get_full_domain(config, subdomain, is_main)
-    print(f"[INFO] Creating new certificate for {domain} on port {port}")
+    logger.info("Creating new certificate for %s on port %s", domain, port)
     nginx = NginxManager(domain, port, config.paths.nginx, config.paths.template, config.paths.acme_template)
 
     if nginx.config_exists():
-        print(f"[ERROR] Config already exists for {domain}. Aborting.")
+        logger.error("Config already exists for %s. Aborting.", domain)
         return
     
     if not nginx.create_config():
-        print(f"[ERROR] Failed to create nginx config")
+        logger.error("Failed to create nginx config")
         return
 
     if not NginxManager.test_config():
-        print(f"[ERROR] nginx config test failed after initial config creation")
+        logger.error("nginx config test failed after initial config creation")
         nginx.delete_config()
         return
 
     if not NginxManager.reload():
-        print(f"[ERROR] Failed to reload nginx after initial config creation")
+        logger.error("Failed to reload nginx after initial config creation")
         nginx.delete_config()
         return
     
@@ -77,12 +81,12 @@ def run_create_mode(config: Config, subdomain: str | None, is_main: bool, port: 
 
 
 def run_cron_mode(config: Config):
-    print("[INFO] Running in cron mode")
+    logger.info("Running in cron mode")
     current_time = datetime.now(timezone.utc)
     for cert in CertbotManager.list_certificates():
         time_remaining = cert.expiry_date - current_time
         if time_remaining <= timedelta(days=config.cron_days):
-            print(f"[INFO] Certificate '{cert.domains}' expires in {time_remaining.days} day(s). Updating...")
+            logger.info("Certificate '%s' expires in %d day(s). Updating...", cert.domains, time_remaining.days)
             if cert.domains == config.domain:
                 run_update_mode(config, None, True)
             elif cert.domains.endswith("." + config.domain):
@@ -91,6 +95,7 @@ def run_cron_mode(config: Config):
 
             
 def main():
+    logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
     parser = argparse.ArgumentParser(description="Manage Nginx and Certbot for domains")
     subparsers = parser.add_subparsers(dest="mode", required=True)
 
@@ -117,13 +122,13 @@ def main():
 
     elif args.mode == "update":
         if not args.main and not args.subdomain:
-            print("[ERROR] Either --main or a subdomain must be specified for update mode.")
+            logger.error("Either --main or a subdomain must be specified for update mode.")
             sys.exit(1)
         run_update_mode(config, args.subdomain, args.main)
 
     elif args.mode == "create":
         if not args.main and not args.subdomain:
-            print("[ERROR] Either --main or a subdomain must be specified for create mode.")
+            logger.error("Either --main or a subdomain must be specified for create mode.")
             sys.exit(1)
         run_create_mode(config, args.subdomain, args.main, args.port)
 
