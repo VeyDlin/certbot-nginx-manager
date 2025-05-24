@@ -1,0 +1,10 @@
+{
+  "domain": "domain.com",
+  "email": "mail@mail.com",
+  "cron_days": 2,
+  "paths": {
+    "nginx": "/etc/nginx/sites-enabled",
+    "template": "nginx/default.temp",
+    "acme_template": "nginx/acme_challenge.temp"
+  }
+}

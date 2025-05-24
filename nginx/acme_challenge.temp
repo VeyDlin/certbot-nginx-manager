@@ -1,0 +1,10 @@
+server {
+    listen 80;
+    server_name {{DOMAIN}};
+    root /var/www/cert_bot;
+
+    location /.well-known/acme-challenge/ {
+        access_log off;
+        default_type "text/plain";
+    }
+}
