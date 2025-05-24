@@ -1,6 +1,10 @@
 import json
+import logging
 from pathlib import Path
 from dataclasses import dataclass
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -22,6 +26,8 @@ class Config:
         with path.open("r", encoding="utf-8") as file:
             data = json.load(file)
 
+        logger.info("Loaded configuration from %s", path)
+
         return Config(
             domain=data["domain"],
             email=data["email"],
@@ -32,3 +38,4 @@ class Config:
                 acme_template=Path(data["paths"]["acme_template"]),
             )
         )
+

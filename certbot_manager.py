@@ -1,3 +1,4 @@
+import logging
 import subprocess
 from typing import List, Dict, Any
 from datetime import datetime
@@ -14,6 +15,9 @@ class Certificate:
     certificate_path: str
     private_key_path: str
 
+
+logger = logging.getLogger(__name__)
+
 class CertbotManager:
     @staticmethod
     def request_basic_certificate(domain: str, email: str) -> bool:
@@ -26,12 +30,18 @@ class CertbotManager:
             "--non-interactive"
         ]
         result = subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        return result.returncode == 0
+        if result.returncode == 0:
+            logger.info("Certificate obtained for %s", domain)
+            return True
+        logger.error("Failed to obtain certificate for %s", domain)
+        return False
 
     @staticmethod
     def list_certificates() -> List[Certificate]:
         result = subprocess.run(["certbot", "certificates"], capture_output=True, text=True)
-        return CertbotManager._parse_certbot_output(result.stdout)
+        certs = CertbotManager._parse_certbot_output(result.stdout)
+        logger.debug("Found %d existing certificate(s)", len(certs))
+        return certs
 
     @staticmethod
     def _parse_certbot_output(output: str) -> List[Certificate]:

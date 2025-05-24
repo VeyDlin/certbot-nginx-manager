@@ -1,13 +1,13 @@
 # certbot-nginx-manager
 
-A simple CLI utility for managing Nginx and Certbot certificates — with automatic renewal, manual updates, and new domain provisioning. Works with both root and subdomains.
+A simple CLI utility for managing Nginx and Certbot certificates. The script uses **your configuration** to create ready-to-use HTTPS sites with a single command and can also renew certificates manually when needed.
 
 ## Features
 
 - 🔒 Automatically renew expiring SSL certificates via `cron`
-- ⚙️ Create and configure new HTTPS domains with Nginx + Certbot
-- 🛠 Manually update certificates for specific domains
-- 🧩 Uses JSON config to store paths, email, base domain, and renewal policy
+- ⚙️ Create and configure new HTTPS domains with your predefined Nginx/Cerbot settings
+- 🛠 Manually update certificates for specific domains when desired
+- 🧩 Uses a JSON config file to store paths, email, base domain and renewal policy
 
 ## Requirements
 
@@ -24,7 +24,7 @@ cd certbot-nginx-manager
 
 ## Configuration
 
-Create a `config.json` file in the root directory:
+Create a `config.json` file in the project root:
 
 ```json
 {
@@ -32,12 +32,27 @@ Create a `config.json` file in the root directory:
   "email": "your@email.com",
   "cron_days": 2,
   "paths": {
-    "nginx_dir": "/etc/nginx/sites-enabled",
+    "nginx": "/etc/nginx/sites-enabled",
     "template": "nginx/default.temp",
     "acme_template": "nginx/acme_challenge.temp"
   }
 }
 ```
+
+* `domain` – base domain used for main site and subdomains
+* `email` – address passed to certbot when requesting certificates
+* `cron_days` – renew certificates this many days before they expire when running in `cron` mode
+* `paths.nginx` – directory where nginx site configs are stored
+* `paths.template` – template file for the final nginx config
+* `paths.acme_template` – template used during certificate issuance
+
+To keep certificates up to date automatically, schedule the cron mode. A typical cron entry might look like:
+
+```cron
+0 * * * * /usr/bin/python3 /path/to/certbot-nginx-manager/main.py cron
+```
+
+Replace the path with the location of your project.
 
 ## Usage
 

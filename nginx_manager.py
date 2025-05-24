@@ -1,7 +1,11 @@
+import logging
 import re
 from pathlib import Path
 import shutil
 import subprocess
+
+
+logger = logging.getLogger(__name__)
 
 
 class NginxManager:
@@ -44,7 +48,7 @@ class NginxManager:
         content = self.template_path.read_text()
         rendered = content.replace("{{DOMAIN}}", self.domain).replace("{{PORT}}", self.port)
         self.config_path.write_text(rendered)
-        print(f"[INFO] Nginx config created: {self.config_path}")
+        logger.info("Nginx config created: %s", self.config_path)
         return True
 
     def create_acme_challenge_config(self):
@@ -54,7 +58,7 @@ class NginxManager:
         content = self.acme_template_path.read_text()
         rendered = content.replace("{{DOMAIN}}", self.domain)
         self.config_path.write_text(rendered)
-        print(f"[INFO] ACME challenge config created: {self.config_path}")
+        logger.info("ACME challenge config created: %s", self.config_path)
         return True
 
     def config_exists(self) -> bool:
@@ -67,34 +71,42 @@ class NginxManager:
         if not self.config_exists():
             return False
         shutil.copy2(self.config_path, self.backup_path)
-        print(f"[INFO] Backup created: {self.backup_path}")
+        logger.info("Backup created: %s", self.backup_path)
         return True
 
     def restore_backup(self):
         if not self.backup_exists():
             return False
         shutil.copy2(self.backup_path, self.config_path)
-        print(f"[INFO] Backup restored to: {self.config_path}")
+        logger.info("Backup restored to: %s", self.config_path)
         self.backup_path.unlink()
-        print(f"[INFO] Backup deleted: {self.backup_path}")
+        logger.info("Backup deleted: %s", self.backup_path)
         return True
 
     def delete_backup(self):
         if self.backup_exists():
             self.backup_path.unlink()
-            print(f"[INFO] Backup deleted: {self.backup_path}")
+            logger.info("Backup deleted: %s", self.backup_path)
 
     def delete_config(self):
         if self.config_exists():
             self.config_path.unlink()
-            print(f"[INFO] Config deleted: {self.config_path}")
+            logger.info("Config deleted: %s", self.config_path)
 
     @staticmethod
     def test_config() -> bool:
         result = subprocess.run(["nginx", "-t"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        return result.returncode == 0
+        if result.returncode == 0:
+            logger.info("nginx configuration is valid")
+            return True
+        logger.error("nginx configuration test failed")
+        return False
 
     @staticmethod
     def reload() -> bool:
         result = subprocess.run(["systemctl", "reload", "nginx"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        return result.returncode == 0
+        if result.returncode == 0:
+            logger.info("nginx reloaded")
+            return True
+        logger.error("failed to reload nginx")
+        return False
