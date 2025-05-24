@@ -59,7 +59,7 @@ def run_create_mode(config: Config, subdomain: str | None, is_main: bool, port: 
         print(f"[ERROR] Config already exists for {domain}. Aborting.")
         return
     
-    if nginx.create_config():
+    if not nginx.create_config():
         print(f"[ERROR] Failed to create nginx config")
         return
 

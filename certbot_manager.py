@@ -18,12 +18,12 @@ class CertbotManager:
     @staticmethod
     def request_basic_certificate(domain: str, email: str) -> bool:
         command = [
-            "certbot", "--nginx",
+            "certbot", "certonly", "--webroot",
+            "-w", "/var/www/cert_bot",
             "-d", domain,
             "--email", email,
             "--agree-tos",
-            "--non-interactive",
-            "--redirect"
+            "--non-interactive"
         ]
         result = subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         return result.returncode == 0
