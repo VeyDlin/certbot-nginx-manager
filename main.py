@@ -63,6 +63,29 @@ def run_create_mode(config: Config, subdomain: str | None, is_main: bool, port: 
         logger.error("Config already exists for %s. Aborting.", domain)
         return
     
+    if not nginx.create_acme_challenge_config():
+        logger.error("Failed to create ACME challenge config for %s", domain)
+        nginx.delete_config()
+        return
+    
+    if not NginxManager.test_config():
+        logger.error("nginx config test failed after writing ACME config")
+        nginx.delete_config()
+        return
+
+    if not NginxManager.reload():
+        logger.error("Failed to reload nginx after writing ACME config")
+        nginx.delete_config()
+        return
+    
+    if not CertbotManager.request_basic_certificate(domain, config.email):
+        logger.error("Failed to obtain certificate from certbot for %s", domain)
+
+    nginx.delete_config()
+    
+    if not NginxManager.reload():
+        logger.warning("nginx reloaded with restored config but may require manual attention")
+
     if not nginx.create_config():
         logger.error("Failed to create nginx config")
         return
@@ -76,8 +99,6 @@ def run_create_mode(config: Config, subdomain: str | None, is_main: bool, port: 
         logger.error("Failed to reload nginx after initial config creation")
         nginx.delete_config()
         return
-    
-    run_update_mode(config, subdomain, is_main)
 
 
 def run_cron_mode(config: Config):
