@@ -4,10 +4,10 @@ A simple CLI utility for managing Nginx and Certbot certificates. The script use
 
 ## Features
 
-- 🔒 Automatically renew expiring SSL certificates via `cron`
-- ⚙️ Create and configure new HTTPS domains with your predefined Nginx/Cerbot settings
-- 🛠 Manually update certificates for specific domains when desired
-- 🧩 Uses a JSON config file to store paths, email, base domain and renewal policy
+- Automatically renew expiring SSL certificates via `cron`
+- Create and configure new HTTPS domains with your predefined Nginx/Cerbot settings
+- Manually update certificates for specific domains when desired
+- Uses a JSON config file to store paths, email, base domain and renewal policy
 
 ## Requirements
 
