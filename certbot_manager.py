@@ -29,11 +29,13 @@ class CertbotManager:
             "--agree-tos",
             "--non-interactive"
         ]
-        result = subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        result = subprocess.run(command, capture_output=True, text=True)
         if result.returncode == 0:
             logger.info("Certificate obtained for %s", domain)
             return True
         logger.error("Failed to obtain certificate for %s", domain)
+        logger.error("Certbot stderr: %s", result.stderr)
+        logger.error("Certbot stdout: %s", result.stdout)
         return False
 
     @staticmethod

@@ -80,11 +80,15 @@ def run_create_mode(config: Config, subdomain: str | None, is_main: bool, port: 
     
     if not CertbotManager.request_basic_certificate(domain, config.email):
         logger.error("Failed to obtain certificate from certbot for %s", domain)
+        nginx.delete_config()
+        NginxManager.reload()
+        return
 
     nginx.delete_config()
-    
+
     if not NginxManager.reload():
         logger.warning("nginx reloaded with restored config but may require manual attention")
+        return
 
     if not nginx.create_config():
         logger.error("Failed to create nginx config")
